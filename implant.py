@@ -152,6 +152,8 @@ class Implant(object):
                 self.persist()
             elif data.split()[0] == "remove":
                 self.remove()
+            elif data.split()[0] == "ls":
+                self.ls()
 
 
 def main():
